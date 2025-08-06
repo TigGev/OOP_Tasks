@@ -13,6 +13,7 @@ class FileSystemNode {
         FileSystemNode(int size, std::string name) : m_size(size), m_name(name) {}
         virtual int getSize() const = 0;
         virtual void display() const = 0;
+        virtual ~FileSystemNode() = default;
 };
 
 class File : public FileSystemNode {
