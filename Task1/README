@@ -1,0 +1,17 @@
+# FileSystem
+
+A simple C++ hierarchical file system simulation using smart pointers (`shared_ptr` and `weak_ptr`).
+
+## Project Structure
+
+- `FileSystem.hpp` — Class declarations
+- `FileSystem.cpp` — Class definitions
+- `Main.cpp` — Example usage and tests
+- `Makefile` — Build instructions
+
+## Building the project
+
+To compile the project, simply run:
+
+```bash
+make
