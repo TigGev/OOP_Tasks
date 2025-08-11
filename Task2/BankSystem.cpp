@@ -1,138 +1,81 @@
-#include <iostream>
-#include <vector>
-#include <string>
-#include <iostream>
+#include <BankSystem.hpp>
 
-class BankAccount {
-    protected:
-        double balance;
-        std::vector<std::string*> transactionHistory;
-    public:
-        BankAccount() = default;
-        BankAccount(const BankAccount& other) : balance(other.balance) {
-            for (auto i : other.transactionHistory) {
-                transactionHistory.push_back(new std::string(*i));
-            }
-        }
-        BankAccount(BankAccount&& other) noexcept : balance(other.balance), transactionHistory(std::move(other.transactionHistory)) {
-            other.transactionHistory.clear();
-            other.balance = 0.0;
-        }
-        BankAccount& operator=(const BankAccount& rhs) {
-            balance = rhs.balance;
-            for (auto i : transactionHistory) {
-                delete i;
-            }
-            for (auto i : rhs.transactionHistory) {
-                transactionHistory.push_back(new std::string(*i));
-            }
-            return *this;
-        }
-        BankAccount& operator=(BankAccount&& rhs) noexcept {
-            balance = rhs.balance;
-            for (auto i : transactionHistory) {
-                delete i;
-            }
-            transactionHistory.clear();
-            transactionHistory = std::move(rhs.transactionHistory);
+Transaction::Transaction(std::string typ, double amnt, double post) : type(typ), amount(amnt), postBalance(post) {}
 
-            rhs.transactionHistory.clear();
-            balance = 0.0;
-            return *this;
-        }
-        virtual ~BankAccount() {
-            for (auto i : transactionHistory) delete i;
-        }
+Transaction::Transaction(const Transaction& other) : type(other.type), amount(other.amount), postBalance(other.postBalance) {}
 
-        virtual void deposit(double amount) = 0;
-        virtual void withdraw(double amount) = 0;  
-        virtual int balance() {return balance;}
-};
+Transaction::Transaction(Transaction&& other) noexcept : type(std::move(other.type)), amount(other.amount), postBalance(other.postBalance) {
+    other.type.clear();
+    other.amount = 0.0;
+    other.postBalance = 0.0;
+}
 
-class SavingsAccount : public BankAccount {
-        int precent;
-    public:
-        SavingsAccount(int CBackPrecent) : precent(CBackPrecent) {}
-        SavingsAccount(const SavingsAccount& other) : BankAccount(other), precent(other.precent) {}
-        SavingsAccount(SavingsAccount&& other) noexcept : BankAccount(std::move(other)), precent(other.precent)  {
-            other.precent = 0;
-        }
-        SavingsAccount& operator=(const SavingsAccount& other) {
-            if (this != &other) {
-                BankAccount::operator=(other);
-                precent = other.precent;
-            }
-            return *this;
-        }
-        SavingsAccount& operator=(SavingsAccount&& other) {
-            if (this != &other) {
-                BankAccount::operator=(std::move(other));
-                precent = other.precent;
-                other.precent = 0;
-            }
-            return *this;
-        }
-        ~SavingsAccount () = default;
+Transaction& Transaction::operator=(const Transaction& other) {
+    type = other.type;
+    amount = other.amount;
+    postBalance = other.postBalance;
+}
 
-        void deposit(double amount) override {
-            double rate = (amount / 100) * precent;
-            balance += amount + rate;
-            std::string* msg = new std::string("deposit: ");
-            *msg += std::to_string(amount) + " + cashback: " + std::to_string(rate);
-            transactionHistory.push_back(msg);
-        }
+Transaction& Transaction::operator=(Transaction&& other) noexcept {
+    type = std::move(other.type);
+    amount = other.amount;
+    postBalance = other.postBalance;
+    other.type.clear();
+    other.amount = 0.0;
+    other.postBalance = 0.0;
+}
 
-        void withdraw(double amount) override {
-            std::string* msg = new std::string("withdraw: ");
-            if (amount > balance) {
-                *msg += "Failure - 'insufficend funds'";
-                transactionHistory.push_back(msg);
-                return;
-            }
-            balance -= amount;
-            *msg += std::to_string(amount);
-        }
-};
+TransactionLogger::TransactionLogger(const TransactionLogger& other) {
+    for (auto t : other.log) {
+        log.push_back(new Transaction(*t));
+    }
+}
 
-class CheckingAccount : public BankAccount {
-        double overdraft;
-    public:
-        CheckingAccount(double overdraftSize) : BankAccount(), overdraft(overdraftSize) {}
-        CheckingAccount(const CheckingAccount& other) : BankAccount(other), overdraft(other.overdraft) {}
-        CheckingAccount(CheckingAccount&& other) noexcept : BankAccount(std::move(other)), overdraft(other.overdraft) {
-                other.overdraft = 0.0;
-        }
-        CheckingAccount& operator=(const CheckingAccount& other) {
-            if (this != &other) {
-                BankAccount::operator=(other);
-                overdraft = other.overdraft;
-            }
-            return *this;
-        }
-        CheckingAccount& operator=(CheckingAccount&& other) {
-            if (this != &other) {
-                BankAccount::operator=(std::move(other));
-                overdraft = other.overdraft;
-                other.overdraft = 0.0;
-            }
-            return *this;
-        }
+TransactionLogger::TransactionLogger(TransactionLogger&& other) noexcept : log(std::move(other.log)) {
+    other.log.clear();
+}
 
-        void deposit(double amount) override {
-            balance += amount;
-            std::string* msg = new std::string("deposit: ");
-            *msg += std::to_string(amount);
-            transactionHistory.push_back(msg);
-        }
+TransactionLogger& TransactionLogger::operator=(const TransactionLogger& other) {
+    for (auto t : other.log) {
+        log.push_back(new Transaction(*t));
+    }
+}
 
-        void withdraw(double amount) override {
-            std::string* msg = new std::string("withdraw: ");
-            if (balance - amount < overdraft) {
-                *msg += "Failure - 'the overdraft amount exceeds the limit'";
-                transactionHistory.push_back(msg);
-                return;
-            }
-            *msg += std::to_string(amount);
-            transactionHistory.push_back(msg);
-        }
-};
+TransactionLogger& TransactionLogger::operator=(TransactionLogger&& other) noexcept {
+    log = std::move(other.log);
+    other.log.clear();
+}
+
+TransactionLogger::~TransactionLogger() {
+    for (auto t : log) delete t;
+}
+
+void TransactionLogger::addLog(Transaction* transaction) { log.push_back(transaction); }
+
+BankAccount::BankAccount(const BankAccount& other) : balance(other.balance), logger(other.logger) {}
+
+BankAccount::BankAccount(BankAccount&& other) noexcept : balance(other.balance), logger(std::move(other.logger)) {
+    other.balance = 0.0;
+}
+
+BankAccount& BankAccount::operator=(const BankAccount& other) {
+    balance = other.balance;
+    logger = other.logger;
+}
+
+BankAccount& BankAccount::operator=(BankAccount&& other) noexcept {
+    balance = other.balance;
+    logger = std::move(other.logger);
+    other.balance = 0.0;
+}
+
+double BankAccount::getBalance() const {return balance;}
+
+SavingsAccount::SavingsAccount(int precent) : rate(precent), monthCashBack(0) {}
+
+SavingsAccount::SavingsAccount(const SavingsAccount& other) : BankAccount(other), rate(other.rate), monthCashBack(other.monthCashBack) {}
+
+SavingsAccount::SavingsAccount(SavingsAccount&& other) noexcept : BankAccount(std::move(other)), rate(other.rate), monthCashBack(other.monthCashBack) {
+    other.rate = 0;
+    other.monthCashBack = 0.0;
+}
